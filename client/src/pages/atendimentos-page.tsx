@@ -74,18 +74,21 @@ export default function AtendimentosPage() {
   });
   
   // Buscar atendimentos
-  const { data: atendimentos = [], isLoading: isLoadingAtendimentos } = useQuery({
+  const { data: atendimentos = [], isLoading: isLoadingAtendimentos, refetch } = useQuery({
     queryKey: ['/api/atendimentos'],
+    staleTime: 1000, // Considere os dados desatualizados após 1 segundo para atualizar mais rápido
   });
   
   // Buscar crianças/pacientes
   const { data: criancas = [], isLoading: isLoadingCriancas } = useQuery({
     queryKey: ['/api/criancas'],
+    staleTime: 1000, // Considere os dados desatualizados após 1 segundo para atualizar mais rápido
   });
   
   // Buscar tipos de atendimento
   const { data: tiposAtendimento = [], isLoading: isLoadingTipos } = useQuery({
     queryKey: ['/api/tipos-atendimento'],
+    staleTime: 1000, // Considere os dados desatualizados após 1 segundo para atualizar mais rápido
   });
   
   // Filtrar atendimentos com base nos filtros selecionados
@@ -158,8 +161,11 @@ export default function AtendimentosPage() {
     try {
       await apiRequest('DELETE', `/api/atendimentos/${deletingId}`);
       
-      // Atualizar cache de consultas
-      queryClient.invalidateQueries({ queryKey: ['/api/atendimentos'] });
+      // Atualizar cache de consultas e forçar a recarga dos dados
+      await queryClient.invalidateQueries({ queryKey: ['/api/atendimentos'] });
+      
+      // Forçar a recarga dos dados após a exclusão
+      await refetch();
       
       toast({
         title: "Atendimento excluído",

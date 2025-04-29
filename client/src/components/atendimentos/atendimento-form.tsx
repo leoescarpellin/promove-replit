@@ -176,7 +176,7 @@ export function AtendimentoForm({ atendimento, onClose }: AtendimentoFormProps) 
         dataInicio: dataInicioObj.toISOString(),
         dataFim: dataFimObj.toISOString(),
         descricao: data.descricao,
-        valor: data.valor ? parseFloat(data.valor) : null,
+        valor: data.valor, // Não converter o valor para número, pois o schema espera string
       };
       
       if (atendimento) {
@@ -457,7 +457,9 @@ export function AtendimentoForm({ atendimento, onClose }: AtendimentoFormProps) 
               <div className="flex">
                 <FormControl>
                   <div className="relative">
-                    <DollarSign className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                    <div className="absolute left-3 top-2.5 h-5 w-5 text-gray-400 flex items-center justify-center font-semibold">
+                      R$
+                    </div>
                     <Input 
                       type="number" 
                       step="0.01" 

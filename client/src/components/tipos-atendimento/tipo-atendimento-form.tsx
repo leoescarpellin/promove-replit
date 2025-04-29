@@ -20,20 +20,25 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
-import { Save, DollarSign, AlertTriangle } from 'lucide-react';
+import { Save, AlertTriangle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
-// Estendendo o schema de tipo de atendimento
-const tipoAtendimentoFormSchema = insertTipoAtendimentoSchema;
+// Estendendo o schema de tipo de atendimento com validações mais específicas
+const tipoAtendimentoFormSchema = insertTipoAtendimentoSchema.extend({
+  sigla: z.string().min(1, "A sigla é obrigatória").max(5, "A sigla deve ter no máximo 5 caracteres"),
+  nome: z.string().min(1, "O nome é obrigatório"),
+  valor: z.string().min(1, "O valor é obrigatório").transform(val => val === "" ? null : val),
+});
 
 type TipoAtendimentoFormValues = z.infer<typeof tipoAtendimentoFormSchema>;
 
 interface TipoAtendimentoFormProps {
   tipo?: any;
   onClose: () => void;
+  onSuccess?: () => void;
 }
 
-export function TipoAtendimentoForm({ tipo, onClose }: TipoAtendimentoFormProps) {
+export function TipoAtendimentoForm({ tipo, onClose, onSuccess }: TipoAtendimentoFormProps) {
   const { toast } = useToast();
   
   // Preparar valores iniciais para o formulário
@@ -64,10 +69,10 @@ export function TipoAtendimentoForm({ tipo, onClose }: TipoAtendimentoFormProps)
   // Enviar formulário
   const onSubmit = async (data: TipoAtendimentoFormValues) => {
     try {
-      // Converter o valor para número se estiver presente
+      // Manter o valor como string para compatibilidade com o schema
       const formattedData = {
         ...data,
-        valor: data.valor ? parseFloat(data.valor) : null,
+        // Não converter o valor para número, pois o schema espera string
       };
       
       if (tipo) {
@@ -89,14 +94,37 @@ export function TipoAtendimentoForm({ tipo, onClose }: TipoAtendimentoFormProps)
       // Atualizar cache
       queryClient.invalidateQueries({ queryKey: ['/api/tipos-atendimento'] });
       
+      // Chamar callback de sucesso se existir
+      if (onSuccess) {
+        onSuccess();
+      }
+      
       // Fechar o formulário
       onClose();
     } catch (error) {
-      toast({
-        title: "Erro",
-        description: error instanceof Error ? error.message : "Ocorreu um erro ao salvar o tipo de atendimento.",
-        variant: "destructive",
-      });
+      // Tratar erro de validação do formulário
+      if (error instanceof Error) {
+        // Se o erro contiver mensagem sobre campo obrigatório, exiba uma mensagem mais amigável
+        if (error.message.includes("valor") || error.message.includes("Erro ao criar tipo de atendimento")) {
+          toast({
+            title: "Campos obrigatórios não preenchidos",
+            description: "Os campos Sigla, Nome e Valor são obrigatórios. Por favor, verifique e tente novamente.",
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Erro ao salvar",
+            description: error.message,
+            variant: "destructive",
+          });
+        }
+      } else {
+        toast({
+          title: "Erro inesperado",
+          description: "Ocorreu um erro ao salvar o tipo de atendimento. Verifique todos os campos e tente novamente.",
+          variant: "destructive",
+        });
+      }
     }
   };
   
@@ -109,7 +137,7 @@ export function TipoAtendimentoForm({ tipo, onClose }: TipoAtendimentoFormProps)
             name="sigla"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Sigla</FormLabel>
+                <FormLabel>Sigla *</FormLabel>
                 <FormControl>
                   <Input {...field} placeholder="Ex: ABA" maxLength={5} />
                 </FormControl>
@@ -127,7 +155,7 @@ export function TipoAtendimentoForm({ tipo, onClose }: TipoAtendimentoFormProps)
               name="nome"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Nome</FormLabel>
+                  <FormLabel>Nome *</FormLabel>
                   <FormControl>
                     <Input {...field} placeholder="Ex: Terapia ABA" />
                   </FormControl>
@@ -167,11 +195,13 @@ export function TipoAtendimentoForm({ tipo, onClose }: TipoAtendimentoFormProps)
           name="valor"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Valor Padrão</FormLabel>
+              <FormLabel>Valor Padrão *</FormLabel>
               <div className="flex">
                 <FormControl>
                   <div className="relative">
-                    <DollarSign className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                    <div className="absolute left-3 top-2.5 h-5 w-5 text-gray-400 flex items-center justify-center font-semibold">
+                      R$
+                    </div>
                     <Input 
                       type="number" 
                       step="0.01" 
@@ -200,6 +230,10 @@ export function TipoAtendimentoForm({ tipo, onClose }: TipoAtendimentoFormProps)
             </AlertDescription>
           </Alert>
         )}
+        
+        <div className="mt-2 text-sm text-gray-500">
+          <span className="text-red-500">*</span> Campos obrigatórios
+        </div>
         
         <Separator />
         

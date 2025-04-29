@@ -302,9 +302,13 @@ export function UsuarioForm({ usuario, onClose }: UsuarioFormProps) {
         // Não estamos atualizando relações existentes neste exemplo, para simplificar
       }
       
-      // Atualizar cache
-      queryClient.invalidateQueries({ queryKey: ['/api/usuarios'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/usuario-tipos-atendimento'] });
+      // Atualizar cache e forçar refetch imediato
+      await queryClient.invalidateQueries({ queryKey: ['/api/usuarios'] });
+      await queryClient.invalidateQueries({ queryKey: ['/api/usuario-tipos-atendimento'] });
+      
+      // Refetch explícito para garantir atualização imediata
+      await queryClient.refetchQueries({ queryKey: ['/api/usuarios'] });
+      await queryClient.refetchQueries({ queryKey: ['/api/usuario-tipos-atendimento'] });
       
       // Fechar o formulário
       onClose();
@@ -507,7 +511,7 @@ export function UsuarioForm({ usuario, onClose }: UsuarioFormProps) {
                   Adicionar Tipo
                 </Button>
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent className="max-w-[500px]">
                 <DialogHeader>
                   <DialogTitle>Adicionar Tipo de Atendimento</DialogTitle>
                   <DialogDescription>

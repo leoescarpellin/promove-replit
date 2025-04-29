@@ -72,23 +72,27 @@ export default function PacientesPage() {
   const [filtroTipo, setFiltroTipo] = useState('');
 
   // Buscar clientes
-  const { data: clientes = [], isLoading: isLoadingClientes } = useQuery({
+  const { data: clientes = [], isLoading: isLoadingClientes, refetch } = useQuery({
     queryKey: ['/api/criancas'],
+    staleTime: 1000, // Considere os dados desatualizados após 1 segundo para atualizar mais rápido
   });
   
   // Buscar tipos de atendimento para filtro
   const { data: tiposAtendimento = [] } = useQuery({
     queryKey: ['/api/tipos-atendimento'],
+    staleTime: 1000, // Considere os dados desatualizados após 1 segundo para atualizar mais rápido
   });
   
   // Buscar relações criança-tipo de atendimento
   const { data: criancaTiposAtendimento = [] } = useQuery({
     queryKey: ['/api/crianca-tipos-atendimento'],
+    staleTime: 1000, // Considere os dados desatualizados após 1 segundo para atualizar mais rápido
   });
   
   // Buscar próximos atendimentos
   const { data: atendimentos = [] } = useQuery({
     queryKey: ['/api/atendimentos'],
+    staleTime: 1000, // Considere os dados desatualizados após 1 segundo para atualizar mais rápido
   });
 
   // Filtrar clientes com base na busca e tipo de atendimento
@@ -138,8 +142,11 @@ export default function PacientesPage() {
     try {
       await apiRequest('DELETE', `/api/criancas/${deletingId}`);
       
-      // Atualizar cache de consultas
-      queryClient.invalidateQueries({ queryKey: ['/api/criancas'] });
+      // Atualizar cache de consultas e forçar a recarga dos dados
+      await queryClient.invalidateQueries({ queryKey: ['/api/criancas'] });
+      
+      // Forçar a recarga dos dados após a exclusão
+      await refetch();
       
       toast({
         title: "Cliente excluído",

@@ -18,28 +18,72 @@ import {
   Legend
 } from 'recharts';
 
-// Dados simulados para o dashboard
-const mockAtendimentosData = [
-  { name: 'Jan', atendimentos: 32 },
-  { name: 'Fev', atendimentos: 28 },
-  { name: 'Mar', atendimentos: 36 },
-  { name: 'Abr', atendimentos: 40 },
-  { name: 'Mai', atendimentos: 25 },
-  { name: 'Jun', atendimentos: 30 },
-];
+// Interface para mapear os tipos esperados
+interface Atendimento {
+  id: number;
+  dataInicio: string;
+  dataFim: string;
+  criancaId: number;
+  usuarioId: number;
+  tipoAtendimentoId: number;
+  observacoes?: string;
+  valor: number | string;
+  createdAt?: string;
+}
+
+// Esta função será usada para gerar dados de atendimentos por mês com dados reais
+const gerarDadosAtendimentosPorMes = (atendimentos: Atendimento[]) => {
+  const hoje = new Date();
+  const ultimosMeses = Array.from({ length: 6 }, (_, i) => {
+    const data = new Date();
+    data.setMonth(hoje.getMonth() - i);
+    return {
+      data,
+      nome: data.toLocaleString('pt-BR', { month: 'short' }),
+      ano: data.getFullYear(),
+      mes: data.getMonth()
+    };
+  }).reverse();
+  
+  return ultimosMeses.map((mes) => {
+    const count = atendimentos.filter((a: any) => {
+      const dataAtendimento = new Date(a.dataInicio);
+      return dataAtendimento.getMonth() === mes.mes && 
+             dataAtendimento.getFullYear() === mes.ano;
+    }).length;
+    
+    return {
+      name: `${mes.nome}/${mes.ano.toString().substring(2, 4)}`,
+      atendimentos: count
+    };
+  });
+};
 
 export default function DashboardPage() {
   const { user } = useAuth();
   const [, navigate] = useLocation();
   
+  // Definir tipo para Criança
+  interface Crianca {
+    id: number;
+    nome: string;
+    dataNascimento: string;
+    responsavel: string;
+    telefone: string;
+    email: string;
+    endereco: string;
+    observacoes?: string;
+    createdAt?: string;
+  }
+  
   // Buscar atendimentos
-  const { data: atendimentos = [] } = useQuery({
+  const { data: atendimentos = [] } = useQuery<Atendimento[]>({
     queryKey: ['/api/atendimentos'],
     enabled: !!user,
   });
   
   // Buscar pacientes
-  const { data: pacientes = [] } = useQuery({
+  const { data: pacientes = [] } = useQuery<Crianca[]>({
     queryKey: ['/api/criancas'],
     enabled: !!user,
   });
@@ -141,7 +185,7 @@ export default function DashboardPage() {
           <CardContent>
             <div className="h-80">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={mockAtendimentosData}>
+                <BarChart data={gerarDadosAtendimentosPorMes(atendimentos)}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="name" />
                   <YAxis />

@@ -163,7 +163,7 @@ export function ClienteForm({ cliente, onClose }: ClienteFormProps) {
         tipoAtendimentoId: tipoId,
         nome: tipoExistente.nome,
         sigla: tipoExistente.sigla,
-        valor: data.valor ? parseFloat(data.valor) : null,
+        valor: data.valor, // Não converter o valor para número, pois o schema espera string
       };
       
       setTiposAtendimentoCliente([...tiposAtendimentoCliente, novoTipo]);

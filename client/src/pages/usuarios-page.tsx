@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Layout } from '@/components/layout/layout';
 import { useQuery } from '@tanstack/react-query';
 import { UsuarioForm } from '@/components/usuarios/usuario-form';
@@ -73,10 +73,17 @@ export default function UsuariosPage() {
   // Estado para filtro de busca
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Buscar usuários
-  const { data: usuarios = [], isLoading } = useQuery({
+  // Buscar usuários - sempre refetch ao montar o componente
+  const { data: usuarios = [], isLoading, refetch } = useQuery({
     queryKey: ['/api/usuarios'],
+    refetchOnMount: true,
+    staleTime: 0,
   });
+  
+  // Refetch explícito ao montar o componente
+  useEffect(() => {
+    refetch();
+  }, [refetch]);
   
   // Buscar tipos de atendimento
   const { data: tiposAtendimento = [] } = useQuery({
@@ -140,8 +147,9 @@ export default function UsuariosPage() {
     try {
       await apiRequest('DELETE', `/api/usuarios/${deletingId}`);
       
-      // Atualizar cache de consultas
-      queryClient.invalidateQueries({ queryKey: ['/api/usuarios'] });
+      // Atualizar cache de consultas e forçar refetch imediato
+      await queryClient.invalidateQueries({ queryKey: ['/api/usuarios'] });
+      await queryClient.refetchQueries({ queryKey: ['/api/usuarios'] });
       
       toast({
         title: "Usuário excluído",
@@ -190,7 +198,7 @@ export default function UsuariosPage() {
                 Novo Usuário
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[600px]">
+            <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>
                   {editingUsuario ? "Editar Usuário" : "Novo Usuário"}

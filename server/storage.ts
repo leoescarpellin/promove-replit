@@ -2,10 +2,16 @@ import { users, User, InsertUser, tiposAtendimento, TipoAtendimento, InsertTipoA
   criancas, Crianca, InsertCrianca, atendimentos, Atendimento, InsertAtendimento,
   usuarioTiposAtendimento, UsuarioTipoAtendimento, InsertUsuarioTipoAtendimento,
   criancaTiposAtendimento, CriancaTipoAtendimento, InsertCriancaTipoAtendimento } from "@shared/schema";
-import createMemoryStore from "memorystore";
 import session from "express-session";
+import connectPg from "connect-pg-simple";
+import { db } from "./db";
+import { eq, and } from "drizzle-orm";
+import { pool } from "./db";
 
-const MemoryStore = createMemoryStore(session);
+// Tipo de store para sessão
+type SessionStore = session.Store;
+
+const PostgresSessionStore = connectPg(session);
 
 export interface IStorage {
   // User related
@@ -54,218 +60,197 @@ export interface IStorage {
   sessionStore: session.SessionStore;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<number, User>;
-  private tiposAtendimento: Map<number, TipoAtendimento>;
-  private criancas: Map<number, Crianca>;
-  private atendimentos: Map<number, Atendimento>;
-  private usuarioTiposAtendimento: Map<number, UsuarioTipoAtendimento>;
-  private criancaTiposAtendimento: Map<number, CriancaTipoAtendimento>;
-  
-  private userCurrentId: number;
-  private tipoAtendimentoCurrentId: number;
-  private criancaCurrentId: number;
-  private atendimentoCurrentId: number;
-  private usuarioTipoAtendimentoCurrentId: number;
-  private criancaTipoAtendimentoCurrentId: number;
-  
+export class DatabaseStorage implements IStorage {
   sessionStore: session.SessionStore;
 
   constructor() {
-    this.users = new Map();
-    this.tiposAtendimento = new Map();
-    this.criancas = new Map();
-    this.atendimentos = new Map();
-    this.usuarioTiposAtendimento = new Map();
-    this.criancaTiposAtendimento = new Map();
-    
-    this.userCurrentId = 1;
-    this.tipoAtendimentoCurrentId = 1;
-    this.criancaCurrentId = 1;
-    this.atendimentoCurrentId = 1;
-    this.usuarioTipoAtendimentoCurrentId = 1;
-    this.criancaTipoAtendimentoCurrentId = 1;
-    
-    this.sessionStore = new MemoryStore({
-      checkPeriod: 86400000 // prune expired entries every 24h
+    this.sessionStore = new PostgresSessionStore({ 
+      pool,
+      createTableIfMissing: true 
     });
   }
 
   // User methods
   async getUser(id: number): Promise<User | undefined> {
-    return this.users.get(id);
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username
-    );
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const id = this.userCurrentId++;
-    const user: User = { ...insertUser, id, createdAt: new Date() };
-    this.users.set(id, user);
+    const [user] = await db.insert(users).values(insertUser).returning();
     return user;
   }
   
   async updateUser(id: number, userData: Partial<User>): Promise<User | undefined> {
-    const existingUser = this.users.get(id);
-    if (!existingUser) return undefined;
-    
-    const updatedUser = { ...existingUser, ...userData };
-    this.users.set(id, updatedUser);
+    const [updatedUser] = await db
+      .update(users)
+      .set(userData)
+      .where(eq(users.id, id))
+      .returning();
     return updatedUser;
   }
   
   async deleteUser(id: number): Promise<boolean> {
-    return this.users.delete(id);
+    const [deletedUser] = await db
+      .delete(users)
+      .where(eq(users.id, id))
+      .returning();
+    return !!deletedUser;
   }
   
   async getAllUsers(): Promise<User[]> {
-    return Array.from(this.users.values());
+    return await db.select().from(users);
   }
   
   // Tipo Atendimento methods
   async createTipoAtendimento(tipo: InsertTipoAtendimento): Promise<TipoAtendimento> {
-    const id = this.tipoAtendimentoCurrentId++;
-    const tipoAtendimento: TipoAtendimento = { ...tipo, id, createdAt: new Date() };
-    this.tiposAtendimento.set(id, tipoAtendimento);
+    const [tipoAtendimento] = await db.insert(tiposAtendimento).values(tipo).returning();
     return tipoAtendimento;
   }
   
   async getTipoAtendimento(id: number): Promise<TipoAtendimento | undefined> {
-    return this.tiposAtendimento.get(id);
+    const [tipo] = await db.select().from(tiposAtendimento).where(eq(tiposAtendimento.id, id));
+    return tipo;
   }
   
   async getTipoAtendimentoBySigla(sigla: string): Promise<TipoAtendimento | undefined> {
-    return Array.from(this.tiposAtendimento.values()).find(
-      (tipo) => tipo.sigla === sigla
-    );
+    const [tipo] = await db.select().from(tiposAtendimento).where(eq(tiposAtendimento.sigla, sigla));
+    return tipo;
   }
   
   async updateTipoAtendimento(id: number, tipoData: Partial<TipoAtendimento>): Promise<TipoAtendimento | undefined> {
-    const existingTipo = this.tiposAtendimento.get(id);
-    if (!existingTipo) return undefined;
-    
-    const updatedTipo = { ...existingTipo, ...tipoData };
-    this.tiposAtendimento.set(id, updatedTipo);
+    const [updatedTipo] = await db
+      .update(tiposAtendimento)
+      .set(tipoData)
+      .where(eq(tiposAtendimento.id, id))
+      .returning();
     return updatedTipo;
   }
   
   async deleteTipoAtendimento(id: number): Promise<boolean> {
-    return this.tiposAtendimento.delete(id);
+    const [deletedTipo] = await db
+      .delete(tiposAtendimento)
+      .where(eq(tiposAtendimento.id, id))
+      .returning();
+    return !!deletedTipo;
   }
   
   async getAllTiposAtendimento(): Promise<TipoAtendimento[]> {
-    return Array.from(this.tiposAtendimento.values());
+    return await db.select().from(tiposAtendimento);
   }
   
   // Criança methods
   async createCrianca(crianca: InsertCrianca): Promise<Crianca> {
-    const id = this.criancaCurrentId++;
-    const novaCrianca: Crianca = { ...crianca, id, createdAt: new Date() };
-    this.criancas.set(id, novaCrianca);
+    const [novaCrianca] = await db.insert(criancas).values(crianca).returning();
     return novaCrianca;
   }
   
   async getCrianca(id: number): Promise<Crianca | undefined> {
-    return this.criancas.get(id);
+    const [crianca] = await db.select().from(criancas).where(eq(criancas.id, id));
+    return crianca;
   }
   
   async updateCrianca(id: number, criancaData: Partial<Crianca>): Promise<Crianca | undefined> {
-    const existingCrianca = this.criancas.get(id);
-    if (!existingCrianca) return undefined;
-    
-    const updatedCrianca = { ...existingCrianca, ...criancaData };
-    this.criancas.set(id, updatedCrianca);
+    const [updatedCrianca] = await db
+      .update(criancas)
+      .set(criancaData)
+      .where(eq(criancas.id, id))
+      .returning();
     return updatedCrianca;
   }
   
   async deleteCrianca(id: number): Promise<boolean> {
-    return this.criancas.delete(id);
+    const [deletedCrianca] = await db
+      .delete(criancas)
+      .where(eq(criancas.id, id))
+      .returning();
+    return !!deletedCrianca;
   }
   
   async getAllCriancas(): Promise<Crianca[]> {
-    return Array.from(this.criancas.values());
+    return await db.select().from(criancas);
   }
   
   // Atendimento methods
   async createAtendimento(atendimento: InsertAtendimento): Promise<Atendimento> {
-    const id = this.atendimentoCurrentId++;
-    const novoAtendimento: Atendimento = { ...atendimento, id, createdAt: new Date() };
-    this.atendimentos.set(id, novoAtendimento);
+    const [novoAtendimento] = await db.insert(atendimentos).values(atendimento).returning();
     return novoAtendimento;
   }
   
   async getAtendimento(id: number): Promise<Atendimento | undefined> {
-    return this.atendimentos.get(id);
+    const [atendimento] = await db.select().from(atendimentos).where(eq(atendimentos.id, id));
+    return atendimento;
   }
   
   async updateAtendimento(id: number, atendimentoData: Partial<Atendimento>): Promise<Atendimento | undefined> {
-    const existingAtendimento = this.atendimentos.get(id);
-    if (!existingAtendimento) return undefined;
-    
-    const updatedAtendimento = { ...existingAtendimento, ...atendimentoData };
-    this.atendimentos.set(id, updatedAtendimento);
+    const [updatedAtendimento] = await db
+      .update(atendimentos)
+      .set(atendimentoData)
+      .where(eq(atendimentos.id, id))
+      .returning();
     return updatedAtendimento;
   }
   
   async deleteAtendimento(id: number): Promise<boolean> {
-    return this.atendimentos.delete(id);
+    const [deletedAtendimento] = await db
+      .delete(atendimentos)
+      .where(eq(atendimentos.id, id))
+      .returning();
+    return !!deletedAtendimento;
   }
   
   async getAllAtendimentos(): Promise<Atendimento[]> {
-    return Array.from(this.atendimentos.values());
+    return await db.select().from(atendimentos);
   }
   
   async getAtendimentosByCrianca(criancaId: number): Promise<Atendimento[]> {
-    return Array.from(this.atendimentos.values()).filter(
-      (atendimento) => atendimento.criancaId === criancaId
-    );
+    return await db.select().from(atendimentos).where(eq(atendimentos.criancaId, criancaId));
   }
   
   async getAtendimentosByUsuario(usuarioId: number): Promise<Atendimento[]> {
-    return Array.from(this.atendimentos.values()).filter(
-      (atendimento) => atendimento.usuarioId === usuarioId
-    );
+    return await db.select().from(atendimentos).where(eq(atendimentos.usuarioId, usuarioId));
   }
   
   // UsuarioTipoAtendimento methods
   async createUsuarioTipoAtendimento(relacao: InsertUsuarioTipoAtendimento): Promise<UsuarioTipoAtendimento> {
-    const id = this.usuarioTipoAtendimentoCurrentId++;
-    const novaRelacao: UsuarioTipoAtendimento = { ...relacao, id, createdAt: new Date() };
-    this.usuarioTiposAtendimento.set(id, novaRelacao);
+    const [novaRelacao] = await db.insert(usuarioTiposAtendimento).values(relacao).returning();
     return novaRelacao;
   }
   
   async getUsuarioTiposAtendimento(usuarioId: number): Promise<UsuarioTipoAtendimento[]> {
-    return Array.from(this.usuarioTiposAtendimento.values()).filter(
-      (relacao) => relacao.usuarioId === usuarioId
-    );
+    return await db.select().from(usuarioTiposAtendimento).where(eq(usuarioTiposAtendimento.usuarioId, usuarioId));
   }
   
   async deleteUsuarioTipoAtendimento(id: number): Promise<boolean> {
-    return this.usuarioTiposAtendimento.delete(id);
+    const [deletedRelacao] = await db
+      .delete(usuarioTiposAtendimento)
+      .where(eq(usuarioTiposAtendimento.id, id))
+      .returning();
+    return !!deletedRelacao;
   }
   
   // CriancaTipoAtendimento methods
   async createCriancaTipoAtendimento(relacao: InsertCriancaTipoAtendimento): Promise<CriancaTipoAtendimento> {
-    const id = this.criancaTipoAtendimentoCurrentId++;
-    const novaRelacao: CriancaTipoAtendimento = { ...relacao, id, createdAt: new Date() };
-    this.criancaTiposAtendimento.set(id, novaRelacao);
+    const [novaRelacao] = await db.insert(criancaTiposAtendimento).values(relacao).returning();
     return novaRelacao;
   }
   
   async getCriancaTiposAtendimento(criancaId: number): Promise<CriancaTipoAtendimento[]> {
-    return Array.from(this.criancaTiposAtendimento.values()).filter(
-      (relacao) => relacao.criancaId === criancaId
-    );
+    return await db.select().from(criancaTiposAtendimento).where(eq(criancaTiposAtendimento.criancaId, criancaId));
   }
   
   async deleteCriancaTipoAtendimento(id: number): Promise<boolean> {
-    return this.criancaTiposAtendimento.delete(id);
+    const [deletedRelacao] = await db
+      .delete(criancaTiposAtendimento)
+      .where(eq(criancaTiposAtendimento.id, id))
+      .returning();
+    return !!deletedRelacao;
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();

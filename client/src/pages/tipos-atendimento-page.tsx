@@ -35,7 +35,7 @@ import {
   Trash2,
   CheckSquare,
   Users,
-  DollarSign,
+
   FileText,
 } from 'lucide-react';
 import { apiRequest, queryClient } from '@/lib/queryClient';
@@ -62,17 +62,37 @@ export default function TiposAtendimentoPage() {
   // Estado para filtro de busca
   const [searchTerm, setSearchTerm] = useState('');
 
+  // Interfaces para tipagem
+  interface TipoAtendimento {
+    id: number;
+    sigla: string;
+    nome: string;
+    descricao?: string;
+    valor?: number;
+    createdAt?: string;
+  }
+  
+  interface RelacaoTipoAtendimento {
+    id: number;
+    usuarioId?: number;
+    criancaId?: number;
+    tipoAtendimentoId: number;
+    valor?: number;
+    createdAt?: string;
+  }
+
   // Buscar tipos de atendimento
-  const { data: tiposAtendimento = [], isLoading } = useQuery({
+  const { data: tiposAtendimento = [], isLoading, refetch } = useQuery<TipoAtendimento[]>({
     queryKey: ['/api/tipos-atendimento'],
+    staleTime: 1000, // Considere os dados desatualizados após 1 segundo
   });
   
   // Buscar usuários e pacientes que usam cada tipo
-  const { data: criancaTiposAtendimento = [] } = useQuery({
+  const { data: criancaTiposAtendimento = [] } = useQuery<RelacaoTipoAtendimento[]>({
     queryKey: ['/api/crianca-tipos-atendimento'],
   });
   
-  const { data: usuarioTiposAtendimento = [] } = useQuery({
+  const { data: usuarioTiposAtendimento = [] } = useQuery<RelacaoTipoAtendimento[]>({
     queryKey: ['/api/usuario-tipos-atendimento'],
   });
 
@@ -121,8 +141,11 @@ export default function TiposAtendimentoPage() {
     try {
       await apiRequest('DELETE', `/api/tipos-atendimento/${deletingId}`);
       
-      // Atualizar cache de consultas
-      queryClient.invalidateQueries({ queryKey: ['/api/tipos-atendimento'] });
+      // Atualizar cache de consultas e forçar a recarga dos dados
+      await queryClient.invalidateQueries({ queryKey: ['/api/tipos-atendimento'] });
+      
+      // Forçar a recarga dos dados após a exclusão
+      await refetch();
       
       toast({
         title: "Tipo de atendimento excluído",
@@ -179,6 +202,10 @@ export default function TiposAtendimentoPage() {
               onClose={() => {
                 setOpenForm(false);
                 setEditingTipo(null);
+              }}
+              onSuccess={() => {
+                // Forçar atualização dos dados
+                refetch();
               }}
             />
           </DialogContent>
@@ -263,7 +290,7 @@ export default function TiposAtendimentoPage() {
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center text-sm text-gray-500">
-                        <DollarSign className="h-4 w-4 mr-1" />
+                        <span className="mr-1 w-4 h-4 flex items-center justify-center font-medium">R$</span>
                         <span>Valor Base:</span>
                       </div>
                       <span className="font-medium">{formatarValor(tipo.valor)}</span>
