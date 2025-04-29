@@ -1,0 +1,122 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 0 0% 100%;
+  --foreground: 20 14.3% 4.1%;
+  --muted: 60 4.8% 95.9%;
+  --muted-foreground: 25 5.3% 44.7%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 20 14.3% 4.1%;
+  --card: 0 0% 100%;
+  --card-foreground: 20 14.3% 4.1%;
+  --border: 20 5.9% 90%;
+  --input: 20 5.9% 90%;
+  --primary: 50 90% 70%; /* Amarelo do logo (FFD966) */
+  --primary-foreground: 20 14.3% 4.1%;
+  --secondary: 0 84% 70%; /* Vermelho do logo (FF6B6B) */
+  --secondary-foreground: 60 9.1% 97.8%;
+  --accent: 220 75% 60%; /* Azul do logo (5B86E5) */
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 60 9.1% 97.8%;
+  --ring: 20 14.3% 4.1%;
+  --radius: 0.5rem;
+
+  /* Cores específicas para o Promove */
+  --primary-light: 50 90% 85%; /* #FFECB3 */
+  --primary-dark: 50 70% 60%; /* #E6C258 */
+  --secondary-light: 0 84% 80%; /* #FF9E9E */
+  --secondary-dark: 0 60% 60%; /* #E65C5C */
+  --accent-light: 220 75% 75%; /* #8EADF0 */
+  --accent-dark: 220 60% 50%; /* #4A6BBF */
+}
+
+.dark {
+  --background: 240 10% 3.9%;
+  --foreground: 0 0% 98%;
+  --muted: 240 3.7% 15.9%;
+  --muted-foreground: 240 5% 64.9%;
+  --popover: 240 10% 3.9%;
+  --popover-foreground: 0 0% 98%;
+  --card: 240 10% 3.9%;
+  --card-foreground: 0 0% 98%;
+  --border: 240 3.7% 15.9%;
+  --input: 240 3.7% 15.9%;
+  --primary: 50 90% 70%;
+  --primary-foreground: 20 14.3% 4.1%;
+  --secondary: 0 84% 70%;
+  --secondary-foreground: 0 0% 98%;
+  --accent: 220 75% 60%;
+  --accent-foreground: 0 0% 98%;
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 0 0% 98%;
+  --ring: 240 4.9% 83.9%;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply font-sans antialiased bg-neutral-light text-foreground;
+  }
+}
+
+/* Estilos globais para a aplicação Promove */
+.bg-primary-light {
+  @apply bg-[#FFECB3];
+}
+
+.bg-primary-dark {
+  @apply bg-[#E6C258];
+}
+
+.bg-secondary-light {
+  @apply bg-[#FF9E9E];
+}
+
+.bg-secondary-dark {
+  @apply bg-[#E65C5C];
+}
+
+.bg-accent-light {
+  @apply bg-[#8EADF0];
+}
+
+.bg-accent-dark {
+  @apply bg-[#4A6BBF];
+}
+
+.bg-neutral-light {
+  @apply bg-[#F5F5F5];
+}
+
+.bg-neutral-dark {
+  @apply bg-[#333333];
+}
+
+.text-neutral-medium {
+  @apply text-[#666666];
+}
+
+/* Personalização para scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #aaa;
+}
